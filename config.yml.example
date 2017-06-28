@@ -1,0 +1,59 @@
+in:
+    type: google_adwords
+
+    #######################################################################################################
+    #                                     authentication informations                                     #
+    #   for the details, refer to https://developers.google.com/adwords/api/docs/guides/first-api-call    #
+    #######################################################################################################
+    auth_method: OAuth2 # authentication method should be OAuth2
+
+    # OAuth2 client ID and client secret
+    # refer to https://developers.google.com/adwords/api/docs/guides/first-api-call#set_up_oauth2_authentication
+    auth_oauth2_client_id: OAUTH2_CLIENT_ID
+    auth_oauth2_client_secret: OAUTH2_CLIENT_SECRET
+
+    # developer token for AdWords API access
+    # refer to https://developers.google.com/adwords/api/docs/guides/first-api-call#request_a_developer_token
+    auth_developer_token: DEVELOPER_TOKEN
+
+    # account number of the AdWords client account, e.g. 123-456-7890
+    auth_client_customer_id: CLIENT_CUSTOMER_ID
+
+    auth_user_agent: Embulk plugin for Google Adwords
+
+    # OAuth2 tokens
+    # refer to https://developers.google.com/adwords/api/docs/guides/first-api-call#get_an_oauth2_refresh_token_and_configure_your_client
+    oauth2_access_token: ACCESS_TOKEN
+    oauth2_refresh_token: REFRESH_TOKEN
+    oauth2_issued_at: ISSUED_DATE_TIME
+    oauth2_expires_in: 3600
+
+    #######################################################################################################
+    #                                         query informations                                          #
+    #######################################################################################################
+
+    # report type, required
+    # for available report types, refer to https://developers.google.com/adwords/api/docs/appendix/reports
+    report_type: REPORT_TYPE # e.g. CAMPAIGN_PERFORMANCE_REPORT
+
+    # field list to query, required
+    # fields must not contain 'Date' and 'Week' fields if you omit date range
+    # for the available fields per report type, refer to the following link.
+    # https://developers.google.com/adwords/api/docs/appendix/reports/all-reports
+    fields:
+        - FIELD to query # e.g. Amount
+        - FIELD to query # e.g. Clicks
+        - ...
+
+    # query condition list, optional
+    # for the details, refer to https://developers.google.com/adwords/api/docs/guides/awql#formal_grammar
+    conditions:
+        - CONDITION # e.g. CampaignStatus = PAUSED
+        - CONDITION # e.g. CampaignStatus IN [ENABLED, PAUSED]
+        - ...
+
+    # date range, optional, get data for all dates if omitted
+    daterange: DATE_RANGE # e.g. LAST_7_DAYS, e.g. 20170101,20170625
+
+out:
+    type: stdout
