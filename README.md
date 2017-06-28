@@ -1,2 +1,32 @@
-# embulk-input-google-adwords
-Embulk plugin to pull data from Google Adwords
+# Google Adwords input plugin for Embulk
+
+TODO: Write short description here and embulk-input-google_adwords.gemspec file.
+
+## Overview
+
+* **Plugin type**: input
+* **Resume supported**: yes
+* **Cleanup supported**: yes
+* **Guess supported**: no
+
+## Configuration
+
+- **option1**: description (integer, required)
+- **option2**: description (string, default: `"myvalue"`)
+- **option3**: description (string, default: `null`)
+
+## Example
+
+```yaml
+in:
+  type: google_adwords
+  option1: example1
+  option2: example2
+```
+
+
+## Build
+
+```
+$ rake
+```
