@@ -53,7 +53,11 @@ in:
         - ...
 
     # date range, optional, get data for all dates if omitted
-    daterange: DATE_RANGE # e.g. LAST_7_DAYS, e.g. 20170101,20170625
+    # if provided, both max and min required
+    # e.g. 20160401 20170401
+    daterange:
+      min: 20160401
+      max: 20170401
 
 out:
     type: stdout
