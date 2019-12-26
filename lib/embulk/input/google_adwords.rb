@@ -49,9 +49,9 @@ module Embulk
         raise ConfigError.new("The parameter fields must not be empty array.") if task["fields"].empty?
 
         columns = task["fields"].map do |col_name|
-          if %w(Impressions Clicks Cost AverageCpc CostPerAllConversion).include?(col_name)
+          if %w(Impressions Clicks).include?(col_name)
             Column.new(nil, col_name, :long)
-          elsif %w(Ctr ContentImpressionShare Conversions ConversionRate).include?(col_name)
+          elsif %w(Ctr Cost AverageCpc Conversions ConversionRate CostPerAllConversion).include?(col_name)
             Column.new(nil, col_name, :double)
           else
             Column.new(nil, col_name, :string)
@@ -125,11 +125,11 @@ module Embulk
 
       def formated_row(fields, row, use_micro_circle)
         fields.each_with_index do |field, i|
-          if %w(Ctr ContentImpressionShare ConversionRate).include?(field)
+          if %w(Ctr ConversionRate).include?(field)
             row[i].slice!("%")
             row[i] = (row[i].to_f * 0.01).round(3)
           elsif %w(Cost AverageCpc CostPerAllConversion).include?(field) && use_micro_circle
-            row[i] = row[i].to_i / 10 ** 6
+            row[i] = row[i].to_f / 10 ** 6
           end
         end
         row
