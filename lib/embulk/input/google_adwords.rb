@@ -41,14 +41,21 @@ module Embulk
           "report_type" => config.param("report_type", :string),
           "fields" => config.param("fields", :array),
           "conditions" => config.param("conditions", :array, default: []),
-          "daterange" => config.param("daterange", :hash, default: {})
+          "daterange" => config.param("daterange", :hash, default: {}),
+          "use_micro_circle" => config.param("use_micro_circle", :bool, default: true)
         }
 
         raise ConfigError.new("The parameter report_type must not be empty.") if task["report_type"].empty?
         raise ConfigError.new("The parameter fields must not be empty array.") if task["fields"].empty?
 
         columns = task["fields"].map do |col_name|
-          Column.new(nil, col_name, :string)
+          if %w(Impressions Clicks Cost AverageCpc CostPerAllConversion).include?(col_name)
+            Column.new(nil, col_name, :long)
+          elsif %w(Ctr ContentImpressionShare Conversions ConversionRate).include?(col_name)
+            Column.new(nil, col_name, :double)
+          else
+            Column.new(nil, col_name, :string)
+          end
         end
 
         resume(task, columns, 1, &control)
@@ -78,7 +85,7 @@ module Embulk
         query << " DURING #{task["daterange"]["min"]},#{task["daterange"]["max"]}" unless task["daterange"].empty?
         begin
           query_report_results(query) do |row|
-            page_builder.add row
+            page_builder.add formated_row(task["fields"], row, task["use_micro_circle"])
           end
 
         # Authorization error.
@@ -114,6 +121,18 @@ module Embulk
           row = line.split(",")
           block.call row
         end
+      end
+
+      def formated_row(fields, row, use_micro_circle)
+        fields.each_with_index do |field, i|
+          if %w(Ctr ContentImpressionShare ConversionRate).include?(field)
+            row[i].slice!("%")
+            row[i] = (row[i].to_f * 0.01).round(3)
+          elsif %w(Cost AverageCpc CostPerAllConversion).include?(field) && use_micro_circle
+            row[i] = row[i].to_i / 10 ** 6
+          end
+        end
+        row
       end
     end
 
