@@ -1,7 +1,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "embulk-input-google_adwords"
-  spec.version       = "0.1.0"
+  spec.version       = "0.1.1"
   spec.authors       = ["topdeveloper"]
   spec.summary       = "Google Adwords input plugin for Embulk"
   spec.description   = "Loads records from Google Adwords."
