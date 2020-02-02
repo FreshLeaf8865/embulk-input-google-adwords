@@ -118,10 +118,18 @@ module Embulk
         # Allowing rows with zero impressions to show is not supported with AWQL.
         adwords.include_zero_impressions = false
 
-        report_utils.download_report_as_stream_with_awql(query, 'CSV').body.lines do |line|
-          line.chomp!
-          row = line.split(",")
-          block.call row
+        last_line = ""
+
+        report_utils.download_report_as_stream_with_awql(query, 'CSV') do |lines|
+          rows = []
+          (last_line + lines).lines do |line|
+            rows << line
+          end
+          last_line = rows.delete_at(-1)
+          rows.each do |row|
+            row.chomp!
+            block.call row.split(",")
+          end
         end
       end
 
