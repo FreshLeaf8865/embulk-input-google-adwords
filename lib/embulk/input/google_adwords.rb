@@ -131,6 +131,8 @@ module Embulk
             block.call row.split(",")
           end
         end
+
+        block.call last_line.chomp.split(",")
       end
 
       def formated_row(fields, row, convert_column_type, use_micro_yen)
