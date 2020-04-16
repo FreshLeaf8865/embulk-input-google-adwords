@@ -86,6 +86,7 @@ module Embulk
         query << " DURING #{task["daterange"]["min"]},#{task["daterange"]["max"]}" unless task["daterange"].empty?
         begin
           query_report_results(query) do |row|
+            next if row.empty?
             page_builder.add formated_row(task["fields"], row, task["convert_column_type"], task["use_micro_yen"])
           end
 
