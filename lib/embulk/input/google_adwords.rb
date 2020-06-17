@@ -138,6 +138,7 @@ module Embulk
 
       def formated_row(fields, row, convert_column_type, use_micro_yen)
         fields.each_with_index do |field, i|
+          next if row[i].nil?
           if convert_column_type && %w(Ctr ConversionRate).include?(field)
             row[i].slice!("%")
             row[i] = (row[i].to_f * 0.01).round(3)
