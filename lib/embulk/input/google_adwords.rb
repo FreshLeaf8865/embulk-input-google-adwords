@@ -87,7 +87,17 @@ module Embulk
         begin
           query_report_results(query) do |row|
             next if row.empty?
-            page_builder.add formated_row(task["fields"], row, task["convert_column_type"], task["use_micro_yen"])
+            begin
+              page_builder.add formated_row(task["fields"], row, task["convert_column_type"], task["use_micro_yen"])
+            rescue => e
+              # FIXME: APIエラー時に以下のようなレスポンスが返ってくるが、エラーハンドリングが行われていない
+              # ["<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><reportDownloadError><ApiError><type>AuthorizationError.CUSTOMER_NOT_ACTIVE</type><trigger>&lt;null&gt;</trigger><fieldPath></fieldPath></ApiError></reportDownloadError>"]
+              #
+              # `ReportUtils#download_report_as_stream_with_awql` に block が渡る場合、エラーチェックが行われていない
+              # https://github.com/googleads/google-api-ads-ruby/blob/master/adwords_api/lib/adwords_api/report_utils.rb#L227-L236
+              Embulk.logger.error { "invalid response: #{row}" }
+              raise ConfigError.new(e.message)
+            end
           end
 
         # Authorization error.
@@ -138,7 +148,6 @@ module Embulk
 
       def formated_row(fields, row, convert_column_type, use_micro_yen)
         fields.each_with_index do |field, i|
-          next if row[i].nil?
           if convert_column_type && %w(Ctr ConversionRate).include?(field)
             row[i].slice!("%")
             row[i] = (row[i].to_f * 0.01).round(3)
