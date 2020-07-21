@@ -1,8 +1,7 @@
-require 'adwords_api'
+require "adwords_api"
 
 module Embulk
   module Input
-
     class GoogleAdwords < InputPlugin
       Plugin.register_input("google_adwords", self)
 
@@ -22,28 +21,28 @@ module Embulk
                 "refresh_token" => config.param("oauth2_refresh_token", :string),
                 "issued_at" => config.param("oauth2_issued_at", :string),
                 "expires_in" => config.param("oauth2_expires_in", :string),
-                "id_token" => ""
-              }
+                "id_token" => "",
+              },
             },
             "service" => {
-              "environment" => "PRODUCTION"
+              "environment" => "PRODUCTION",
             },
             "connection" => {
-              "enable_gzip" => false
+              "enable_gzip" => false,
             },
             "library" => {
               "log_level" => "INFO",
               "skip_report_header" => true,
               "skip_column_header" => true,
-              "skip_report_summary" => true
-            }
+              "skip_report_summary" => true,
+            },
           },
           "report_type" => config.param("report_type", :string),
           "fields" => config.param("fields", :array),
           "conditions" => config.param("conditions", :array, default: []),
           "daterange" => config.param("daterange", :hash, default: {}),
           "use_micro_yen" => config.param("use_micro_yen", :bool, default: true),
-          "convert_column_type" => config.param("convert_column_type", :bool, default: false)
+          "convert_column_type" => config.param("convert_column_type", :bool, default: false),
         }
 
         raise ConfigError.new("The parameter report_type must not be empty.") if task["report_type"].empty?
@@ -83,32 +82,25 @@ module Embulk
 
         query = "SELECT " + selectors + " FROM " + task["report_type"]
         query << " WHERE " + conditions unless conditions.empty?
+
+        check_connection(query)
+
         query << " DURING #{task["daterange"]["min"]},#{task["daterange"]["max"]}" unless task["daterange"].empty?
         begin
           query_report_results(query) do |row|
             next if row.empty?
-            begin
-              page_builder.add formated_row(task["fields"], row, task["convert_column_type"], task["use_micro_yen"])
-            rescue => e
-              # FIXME: APIエラー時に以下のようなレスポンスが返ってくるが、エラーハンドリングが行われていない
-              # ["<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><reportDownloadError><ApiError><type>AuthorizationError.CUSTOMER_NOT_ACTIVE</type><trigger>&lt;null&gt;</trigger><fieldPath></fieldPath></ApiError></reportDownloadError>"]
-              #
-              # `ReportUtils#download_report_as_stream_with_awql` に block が渡る場合、エラーチェックが行われていない
-              # https://github.com/googleads/google-api-ads-ruby/blob/master/adwords_api/lib/adwords_api/report_utils.rb#L227-L236
-              Embulk.logger.error { "invalid response: #{row}" }
-              raise ConfigError.new(e.message)
-            end
+            page_builder.add formated_row(task["fields"], row, task["convert_column_type"], task["use_micro_yen"])
           end
 
-        # Authorization error.
+          # Authorization error.
         rescue AdsCommon::Errors::OAuth2VerificationRequired => e
           raise ConfigError.new(e.message)
 
-        # HTTP errors.
+          # HTTP errors.
         rescue AdsCommon::Errors::HttpError => e
           raise ConfigError.new(e.message)
 
-        # API errors.
+          # API errors.
         rescue AdwordsApi::Errors::ReportError => e
           raise ConfigError.new(e.message)
         end
@@ -120,18 +112,9 @@ module Embulk
       end
 
       def query_report_results(query, &block)
-        # AdwordsApi::Api
-        adwords = AdwordsApi::Api.new(task["adwords_api_options"])
-
-        # Get report utilities for the version.
-        report_utils = adwords.report_utils
-
-        # Allowing rows with zero impressions to show is not supported with AWQL.
-        adwords.include_zero_impressions = false
-
         last_line = ""
 
-        report_utils.download_report_as_stream_with_awql(query, 'CSV') do |lines|
+        report_utils.download_report_as_stream_with_awql(query, "CSV") do |lines|
           rows = []
           (last_line + lines).lines do |line|
             rows << line
@@ -157,7 +140,30 @@ module Embulk
         end
         row
       end
-    end
 
+      def check_connection(query)
+        # 疎通確認のため1日分だけリクエストを送る
+        if task["daterange"].empty?
+          check_query = query + " DURING YESTERDAY"
+        else
+          check_query = query + " DURING #{task["daterange"]["min"]},#{task["daterange"]["min"]}"
+        end
+
+        report_utils.download_report_as_stream_with_awql(check_query, "CSV")
+      end
+
+      def report_utils
+        # AdwordsApi::Api
+        adwords = AdwordsApi::Api.new(task["adwords_api_options"])
+
+        # Get report utilities for the version.
+        utils = adwords.report_utils
+
+        # Allowing rows with zero impressions to show is not supported with AWQL.
+        adwords.include_zero_impressions = false
+
+        utils
+      end
+    end
   end
 end
